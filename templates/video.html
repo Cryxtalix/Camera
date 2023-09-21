@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+        <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+                <link rel="stylesheet" href="{{ url_for('static', filename='css/style_video.css') }}">
+        </head>
+        <body>
+                <header>
+                        <div class="title">
+                                <h1>Video Player</h1>
+                        </div>
+                </header>
+
+                <div class="content">
+                        <div class="video_container">
+                                <img src="{{ url_for('video_feed') }}" width="100%">
+                        </div>
+        
+                        <div class="control_panel">
+                                <form method="post" action="/video">
+                                        <div class="adjustment">
+                                                <p>Exposure (may not work with all cameras): {{ exposure_value }}</p>
+                                                <input type="range" id="exposure_slider" name="exposure_slider" min="1" max="100" value="{{ exposure_value }}">
+                                                <br>
+                                                <input type="submit" value="Update">
+                                        </div>
+                                        <div class="toggle">
+                                                <p>Show motion detected areas: {{ show_motion_detection }}</p>
+                                                <input type="submit" name="show_motion_detection" value="Toggle">
+                                                <input type="submit" name="update_background" value="Update Background">
+
+                                                <p>Edge detection: {{ edge_detection }}</p>
+                                                <input type="submit" name="edge_detection" value="Toggle">
+
+                                                <p>Facial recognition: {{ facial_recognition }}</p>
+                                                <input type="submit" name="facial_recognition" value="Toggle">
+                                                
+                                                <p>Testing</p>
+                                                <input type="submit" name="third" value="third">
+                                        </div>
+                                </form>
+                        </div>
+                </div>
+        </body>
+</html>

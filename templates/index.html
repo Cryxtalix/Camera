@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+        <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+                <link rel="stylesheet" href="{{ url_for('static', filename='css/style_video.css') }}">
+        </head>
+        <body>
+                <header>
+                        <div class="title">
+                                <h1>Video Player</h1>
+                        </div>
+                </header>
+
+                <div class="content">
+                        <h2>Initial settings</h2>
+                        <div class="initial_options">
+                                <form method="post" action="/">
+                                        <label for="input_name">Project name:</label>
+                                        <input type="text" id="input_name" name="input_name" required>
+                                        
+                                        <label for="checkbox1">Record entire stream</label>
+                                        <input type="checkbox" id="checkbox1" name="checkbox1">
+                                        <br>
+
+                                        <label for="checkbox2">Record when motion detected</label>
+                                        <input type="checkbox" id="checkbox2" name="checkbox2">
+                                        <br>
+
+                                        <input type="submit" value="Start video feed">
+                                </form>
+                        </div>
+                </div>
+        </body>
+</html>

@@ -20,21 +20,24 @@
                         <div class="control_panel">
                                 <form method="post" action="/video">
                                         <div class="adjustment">
+                                                <h2>Project name: {{ project_name }}</h2>
                                                 <p>Exposure (may not work with all cameras): {{ exposure_value }}</p>
                                                 <input type="range" id="exposure_slider" name="exposure_slider" min="1" max="100" value="{{ exposure_value }}">
                                                 <br>
                                                 <input type="submit" value="Update">
                                         </div>
                                         <div class="toggle">
-                                                <p>Show motion detected areas: {{ show_motion_detection }}</p>
-                                                <input type="submit" name="show_motion_detection" value="Toggle">
+                                                <p>Motion detection: {{ motion_detection }}</p>
+                                                <input type="submit" name="motion_detection" value="Toggle">
+                                                <input type="submit" name="show_motion_detection" value="Toggle display">
                                                 <input type="submit" name="update_background" value="Update Background">
-
-                                                <p>Edge detection: {{ edge_detection }}</p>
-                                                <input type="submit" name="edge_detection" value="Toggle">
 
                                                 <p>Facial recognition: {{ facial_recognition }}</p>
                                                 <input type="submit" name="facial_recognition" value="Toggle">
+                                                <input type="submit" name="show_facial_recognition" value="Toggle display">
+
+                                                <p>Edge detection: {{ edge_detection }}</p>
+                                                <input type="submit" name="edge_detection" value="Toggle">
                                                 
                                                 <p>Testing</p>
                                                 <input type="submit" name="third" value="third">

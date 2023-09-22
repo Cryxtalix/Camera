@@ -2,6 +2,7 @@ import cv2 as cv
 import math
 import pandas
 import time
+import numpy as np
 
 class Camera:
         def __init__(self, src) -> None:
@@ -12,6 +13,7 @@ class Camera:
                 self.stream_time = 0
                 self.frame_count: int = 0
                 self.running: bool = False
+                self.background_frame = 0
 
                 # Initial settings
                 self.project_name: str = ""
@@ -19,13 +21,13 @@ class Camera:
                 self.record_motion: bool = False
 
                 # Settings
-                self.show_motion_detection: bool = False #Show motion areas
-                self.edge_detection: bool = False
+                self.motion_detection: bool = False
+                self.show_motion_detection: bool = False # Draw on video
                 self.facial_recognition: bool = False
+                self.show_facial_recognition: bool = False # Draw on video
+                self.edge_detection: bool = False
 
-                # Detailed settings
-
-                self.background_frame = 0
+                self.face_classifier = cv.CascadeClassifier("haarcascade_frontalface_default.xml")
 
         def halt(self) -> None:
                 self.running = 0
@@ -44,17 +46,16 @@ class Camera:
                         self.stream_time = math.floor(time.time() - self.start_time)
 
                         # Perform image manipulation
-                        self.frame = self.manipulate(self.frame)
+                        output_frame = self.manipulate(self.frame)
 
                         # Encode and return video stream
-                        ret, self.encoded_frame = cv.imencode('.jpg', self.frame)
+                        ret, self.encoded_frame = cv.imencode('.jpg', output_frame)
                         self.byte_encoded_frame = self.encoded_frame.tobytes()
                         yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + self.byte_encoded_frame + b'\r\n')
 
         def initial_settings(self, category: str, state) -> None:
                 """
                 * Sets initial video options, cannot use when camera is already operational
-                * Category: "record_all", "record_motion", "input_name"
                 """
                 if not self.running:
                         if category == "record_all" and type(state) == bool:
@@ -63,7 +64,7 @@ class Camera:
                         if category == "record_motion" and type(state) == bool:
                                 self.record_motion = state
                                 return
-                        if category == "input_name" and type(state) == str:
+                        if category == "project_name" and type(state) == str:
                                 self.project_name = state
                         else:
                                 raise Exception("Invalid entry")
@@ -71,12 +72,14 @@ class Camera:
         def update_settings(self, category: str, state: bool) -> None:
                 """
                 * Changes video options while camera is operational
-                * Category: "show_motion_detection", "facial_recognition"
                 * State: True or False
                 """
                 if state != True and state != False:
                         return
-                if category == "show_motion_detection":
+                if category == "motion_detection":
+                        self.motion_detection = state
+                        return
+                elif category == "show_motion_detection":
                         self.show_motion_detection = state
                         return
                 elif category == "edge_detection":
@@ -85,15 +88,16 @@ class Camera:
                 elif category == "facial_recognition":
                         self.facial_recognition = state
                         return
-                elif category == "smoothing_value":
-                        self.smoothing_kernel = state
+                elif category == "show_facial_recognition":
+                        self.show_facial_recognition = state
+                        return
                 else:
                         raise Exception("Please select from available categories")
                 
         def updateBackground(self) -> None:
                 """
-                As the first frame captured is used as the background frame by default, this function
-                updates the background frame if necessary.
+                As the first frame captured is used as the background frame by default, 
+                call to choose current frame as the new background frame
                 """
                 # Convert the frames to grayscale
                 grayscale = cv.cvtColor(self.frame, cv.COLOR_BGR2GRAY)
@@ -102,6 +106,11 @@ class Camera:
                 self.background_frame = grayscale
         
         def manipulate(self, frame):
+                """
+                Private function, performs image manipulation.
+
+                Do not access directly.
+                """
                 # Convert the frames to grayscale
                 grayscale = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
                 # Gaussian blur for smoothing and reducing noise
@@ -109,29 +118,56 @@ class Camera:
                 # Save the first frame used for computation
                 if self.frame_count == 1:
                         self.background_frame = gray_blur
-                
-                if self.edge_detection:
-                        out_frame = cv.Canny(grayscale, 100, 200)
 
-                elif self.facial_recognition:
-                        out_frame = frame
+                # Frame manipulation
+                frame = self.algo_edge_detection(grayscale, frame)
                 
-                else:
-                        out_frame = frame
-                
-                # Perform motion detection
-                subtracted_frame = cv.absdiff(self.background_frame, gray_blur)
-                thresh_frame = cv.threshold(subtracted_frame, 30, 255, cv.THRESH_BINARY)[1]
-                thresh_frame = cv.dilate(thresh_frame, None, iterations = 2)
-                contours,_ = cv.findContours(thresh_frame.copy(), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-                
-                for contour in contours:
-                        if cv.contourArea(contour) < 10000:
-                                continue
+                frame = self.algo_motion_detection(grayscale, frame)
+
+                frame = self.algo_facial_detection(grayscale, frame)
+
+                return frame
+
+        def algo_motion_detection(self, grayscale, frame):
+                if self.motion_detection:
+                        subtracted_frame = cv.absdiff(self.background_frame, grayscale)
+                        thresh_frame = cv.threshold(subtracted_frame, 30, 255, cv.THRESH_BINARY)[1]
+                        thresh_frame = cv.dilate(thresh_frame, None, iterations = 2)
+                        contours,_ = cv.findContours(thresh_frame.copy(), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
                         
-                        if self.show_motion_detection:
-                                (x, y, w, h) = cv.boundingRect(contour)
-                                out_frame = cv.rectangle(out_frame, (x, y), (x + w, y + h), (255, 255, 255), 2)
+                        for contour in contours:
+                                if cv.contourArea(contour) < 10000:
+                                        continue
+                                
+                                # Motion has been detected
+                                # Display bounding rect (optional)
+                                if self.show_motion_detection:
+                                        (x, y, w, h) = cv.boundingRect(contour)
+                                        cv.rectangle(frame, (x, y), (x + w, y + h), (255, 255, 255), 2)
 
-                return out_frame
+                return frame
+                
+        def algo_facial_detection(self, grayscale, frame):
+                if self.facial_recognition:
+                        faces = self.face_classifier.detectMultiScale(grayscale, scaleFactor=1.1, minNeighbors=3)
+                        if len(faces) > 0:
+                                # Face detected
+                                pass
+                        if self.show_facial_recognition:
+                                for (x, y, w, h) in faces:
+                                        cv.rectangle(frame, (x, y), (x + w, y + h), (255, 255, 255), 2)
+                                
+                return frame
+                        
+        def algo_edge_detection(self, grayscale, frame):
+                if self.edge_detection:
+                        # Sorbel filter kernel
+                        edge_kernel_x = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
+                        edge_kernel_y = np.array([[-1, -2, -1], [0, 0, 0], [1, 2, 1]])
 
+                        convolve_y = cv.filter2D(grayscale, -1, edge_kernel_y)
+                        convolve_x = cv.filter2D(grayscale, -1, edge_kernel_x)
+
+                        frame = convolve_x + convolve_y
+
+                return frame

@@ -42,7 +42,7 @@ header {
 .video_container {
         flex: 1;
         max-width: 60%;
-        margin-right: 20px;
+        padding: 20px;
 }
 
 .control_panel {

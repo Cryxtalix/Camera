@@ -1,5 +1,4 @@
 import unittest
-import cv2 as cv
 import camera
 
 class TestCamera(unittest.TestCase):
@@ -11,8 +10,6 @@ class TestCamera(unittest.TestCase):
                 self.assertEqual(cam.frame_count, 0)
                 self.assertEqual(cam.stream_time, 0)
                 self.assertEqual(cam.running, 0)
-                self.assertEqual(cam.record_all, 0)
-                self.assertEqual(cam.record_motion, 0)
                 self.assertEqual(cam.motion_detection, 0)
                 self.assertEqual(cam.facial_recognition, 0)
                 self.assertIsNone(cam.background_frame)

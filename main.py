@@ -11,11 +11,6 @@ def index():
                 if request.form.get("project_name"):
                         mycamera.initial_settings("project_name", request.form['project_name'])
 
-                if request.form.get('checkbox1') == "on":
-                        mycamera.initial_settings("record_all", True)
-
-                if request.form.get('checkbox2') == "on":
-                        mycamera.initial_settings("record_motion", True)
                 return redirect(url_for("video"))
         
         return render_template("index.html")
@@ -24,7 +19,7 @@ def index():
 @app.route("/video/", methods=["GET","POST"])
 def video():
         # Initial values
-        exposure_value: int = 50
+        exposure_value: int = 0
         motion_detection: str = "off"
         facial_recognition: str = "off"
         edge_detection: str = "off"
@@ -32,6 +27,7 @@ def video():
         if request.method == "POST":
                 # Gets exposure value
                 exposure_value = int(request.form["exposure_slider"])
+                mycamera.update_settings("exposure", exposure_value)
 
                 # Toggle display motion detection on/off
                 if request.form.get("motion_detection") == "Toggle":
@@ -57,10 +53,12 @@ def video():
                 if request.form.get("edge_detection") == "Toggle":
                         mycamera.update_settings("edge_detection", not mycamera.edge_detection)
 
-                if request.form.get("third") == "third":
-                        print(mycamera.show_motion_detection)
-                        print(mycamera.project_name)
-                        print(mycamera.stream_time)
+                if request.form.get("Stop") == "Stop":
+                        mycamera.halt()
+
+                if request.form.get("Restart") == "Restart":
+                        mycamera.__init__(0)
+                        return redirect(url_for("index"))
         
         motion_detection = "on" if mycamera.motion_detection == True else "off"
         facial_recognition = "on" if mycamera.facial_recognition == True else "off"

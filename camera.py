@@ -1,8 +1,10 @@
 import cv2 as cv
 import math
-import pandas
+import pandas as pd
 import time
+from datetime import datetime
 import numpy as np
+import pygame
 
 class Camera:
         def __init__(self, src) -> None:
@@ -17,8 +19,6 @@ class Camera:
 
                 # Initial settings
                 self.project_name: str = ""
-                self.record_all: bool = False
-                self.record_motion: bool = False
 
                 # Settings
                 self.motion_detection: bool = False
@@ -26,12 +26,30 @@ class Camera:
                 self.facial_recognition: bool = False
                 self.show_facial_recognition: bool = False # Draw on video
                 self.edge_detection: bool = False
+                self.exposure: int = 0
 
-                self.face_classifier = cv.CascadeClassifier("haarcascade_frontalface_default.xml")
+                self.face_classifier = cv.CascadeClassifier("./assets/haarcascade_frontalface_default.xml")
+                pygame.init()
+                pygame.mixer.music.load("./assets/278142__ricemaster__effect_notify.wav")
+
+                if not self.video.set(cv.CAP_PROP_AUTO_EXPOSURE, 0):
+                        self.exposure_possible = False
+                else:
+                        self.exposure_possible = True
+
+                # Detection settings
+                self.motion_detected: bool = False
+                self.face_detected: bool = False
+                #self.data = pd.DataFrame(columns=['Frame count', 'DateTime', 'Motion detected', 'Face detected'])
+                self.log_data = []
 
         def halt(self) -> None:
-                self.running = 0
+                self.running = False
                 self.video.release()
+                cv.destroyAllWindows()
+
+                df = pd.DataFrame(self.log_data)
+                df.to_csv(f"./csv_out/project_{self.project_name}.csv")
 
         def run_camera(self) -> None:
                 self.running = 1
@@ -53,6 +71,15 @@ class Camera:
                         self.byte_encoded_frame = self.encoded_frame.tobytes()
                         yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + self.byte_encoded_frame + b'\r\n')
 
+                        # Update dataframe
+                        now = datetime.now()
+                        dt_str = now.strftime("%d/%m/%Y %H:%M:%S")
+                        #self.data.loc[len(self.data.index)] = [self.frame_count, dt_str, self.motion_detected, self.face_detected]
+                        self.log_data.append({"Framecount": self.frame_count,
+                                              "Timestamp": dt_str,
+                                              "Motion Detected": self.motion_detected,
+                                              "Face Detected": self.face_detected})
+
         def initial_settings(self, category: str, state) -> None:
                 """
                 * Sets initial video options, cannot use when camera is already operational
@@ -68,6 +95,10 @@ class Camera:
                                 self.project_name = state
                         else:
                                 raise Exception("Invalid entry")
+                        
+        def set_exposure(self, exposure):
+                if self.exposure_possible:
+                        self.video.set(cv.CAP_PROP_EXPOSURE, exposure)
 
         def update_settings(self, category: str, state: bool) -> None:
                 """
@@ -91,6 +122,8 @@ class Camera:
                 elif category == "show_facial_recognition":
                         self.show_facial_recognition = state
                         return
+                elif category == "exposure":
+                        self.set_exposure(state)
                 else:
                         raise Exception("Please select from available categories")
                 
@@ -119,10 +152,15 @@ class Camera:
                 if self.frame_count == 1:
                         self.background_frame = gray_blur
 
+                self.motion_detected = 0
+                self.face_detected = 0
+
                 # Frame manipulation
                 frame = self.algo_edge_detection(grayscale, frame)
                 
                 frame = self.algo_motion_detection(grayscale, frame)
+                if self.motion_detected:
+                        pygame.mixer.music.play()
 
                 frame = self.algo_facial_detection(grayscale, frame)
 
@@ -140,6 +178,7 @@ class Camera:
                                         continue
                                 
                                 # Motion has been detected
+                                self.motion_detected = True
                                 # Display bounding rect (optional)
                                 if self.show_motion_detection:
                                         (x, y, w, h) = cv.boundingRect(contour)
@@ -152,6 +191,7 @@ class Camera:
                         faces = self.face_classifier.detectMultiScale(grayscale, scaleFactor=1.1, minNeighbors=3)
                         if len(faces) > 0:
                                 # Face detected
+                                self.face_detected = True
                                 pass
                         if self.show_facial_recognition:
                                 for (x, y, w, h) in faces:

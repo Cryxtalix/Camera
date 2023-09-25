@@ -20,9 +20,9 @@
                         <div class="control_panel">
                                 <form method="post" action="/video">
                                         <div class="adjustment">
-                                                <h2>Project name: {{ project_name }}</h2>
+                                                <h2>Project: {{ project_name }}</h2>
                                                 <p>Exposure (may not work with all cameras): {{ exposure_value }}</p>
-                                                <input type="range" id="exposure_slider" name="exposure_slider" min="1" max="100" value="{{ exposure_value }}">
+                                                <input type="range" id="exposure_slider" name="exposure_slider" min="-7" max="7" value="{{ exposure_value }}">
                                                 <br>
                                                 <input type="submit" value="Update">
                                         </div>
@@ -39,8 +39,9 @@
                                                 <p>Edge detection: {{ edge_detection }}</p>
                                                 <input type="submit" name="edge_detection" value="Toggle">
                                                 
-                                                <p>Testing</p>
-                                                <input type="submit" name="third" value="third">
+                                                <br><br>
+                                                <input type="submit" name="Stop" value="Stop">
+                                                <input type="submit" name="Restart" value="Restart">
                                         </div>
                                 </form>
                         </div>

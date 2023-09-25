@@ -13,7 +13,7 @@ class FlaskTestCase(unittest.TestCase):
     def testIndexGET(self):
         response = self.app.get('/')
         self.assertEqual(response.status_code, 200) # 200 ok
-        self.assertIn(b'Record entire stream', response.data)
+        self.assertIn(b'Start video feed', response.data)
 
     def testIndexPOST(self):
         response = self.app.post('/', data={'checkbox1': 'on', 'checkbox2': 'on'})
